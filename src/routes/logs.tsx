@@ -125,7 +125,7 @@ function LogsPage() {
               <span
                 className={cn(
                   "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold",
-                  typeStyles[l.log_type] ?? typeStyles.info,
+                  typeStyles[l.log_type] ?? typeStyles["info"],
                 )}
               >
                 {l.log_type}
