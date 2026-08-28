@@ -14,7 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      comments: {
+        Row: {
+          comment_text: string
+          created_at: string
+          id: string
+          is_active: boolean
+          lang: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lang?: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lang?: string
+        }
+        Relationships: []
+      }
+      logs: {
+        Row: {
+          created_at: string
+          id: string
+          log_type: string
+          message: string
+          url_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          log_type?: string
+          message: string
+          url_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          log_type?: string
+          message?: string
+          url_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_url_id_fkey"
+            columns: ["url_id"]
+            isOneToOne: false
+            referencedRelation: "urls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          heartbeat_at: string | null
+          id: string
+          proxy_url: string | null
+          server_status: string
+          updated_at: string
+        }
+        Insert: {
+          heartbeat_at?: string | null
+          id?: string
+          proxy_url?: string | null
+          server_status?: string
+          updated_at?: string
+        }
+        Update: {
+          heartbeat_at?: string | null
+          id?: string
+          proxy_url?: string | null
+          server_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      urls: {
+        Row: {
+          created_at: string
+          enable_comment: boolean
+          enable_like: boolean
+          id: string
+          interval_min: number
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string
+          status: string
+          total_comments_count: number
+          total_likes_count: number
+          total_views_count: number
+          url: string
+          watch_time_sec: number
+        }
+        Insert: {
+          created_at?: string
+          enable_comment?: boolean
+          enable_like?: boolean
+          id?: string
+          interval_min?: number
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string
+          status?: string
+          total_comments_count?: number
+          total_likes_count?: number
+          total_views_count?: number
+          url: string
+          watch_time_sec?: number
+        }
+        Update: {
+          created_at?: string
+          enable_comment?: boolean
+          enable_like?: boolean
+          id?: string
+          interval_min?: number
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string
+          status?: string
+          total_comments_count?: number
+          total_likes_count?: number
+          total_views_count?: number
+          url?: string
+          watch_time_sec?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
