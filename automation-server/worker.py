@@ -321,9 +321,13 @@ def run_cycle(playwright, row: dict, proxy_url: str | None) -> None:
     liked = False
     commented = False
     try:
+        profile = random.choice(DEVICE_PROFILES)
         context = browser.new_context(
-            user_agent=random.choice(USER_AGENTS),
-            viewport=random.choice(VIEWPORTS),
+            user_agent=profile["user_agent"],
+            viewport=profile["viewport"],
+            device_scale_factor=profile["device_scale_factor"],
+            is_mobile=profile["is_mobile"],
+            has_touch=profile["has_touch"],
             locale=random.choice(LOCALES),
             timezone_id=random.choice(["Asia/Riyadh", "Asia/Dubai", "Africa/Cairo", "Europe/London"]),
             java_script_enabled=True,
