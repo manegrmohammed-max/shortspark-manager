@@ -1,0 +1,18 @@
+services:
+  - type: worker
+    name: shorts-automation-worker
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: POLL_INTERVAL_SEC
+        value: "10"
+      - key: HEADLESS
+        value: "true"
