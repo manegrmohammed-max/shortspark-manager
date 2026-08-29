@@ -38,20 +38,43 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 db: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
-]
-
-VIEWPORTS = [
-    {"width": 1366, "height": 768},
-    {"width": 1440, "height": 900},
-    {"width": 1536, "height": 864},
-    {"width": 1920, "height": 1080},
+# بصمات أجهزة كاملة (محمول + سطح مكتب) لتدوير الهوية في كل دورة
+DEVICE_PROFILES = [
+    {
+        "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1",
+        "viewport": {"width": 390, "height": 844},
+        "device_scale_factor": 3,
+        "is_mobile": True,
+        "has_touch": True,
+    },
+    {
+        "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
+        "viewport": {"width": 412, "height": 915},
+        "device_scale_factor": 2.625,
+        "is_mobile": True,
+        "has_touch": True,
+    },
+    {
+        "user_agent": "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
+        "viewport": {"width": 360, "height": 800},
+        "device_scale_factor": 3,
+        "is_mobile": True,
+        "has_touch": True,
+    },
+    {
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "viewport": {"width": 1366, "height": 768},
+        "device_scale_factor": 1,
+        "is_mobile": False,
+        "has_touch": False,
+    },
+    {
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "viewport": {"width": 1440, "height": 900},
+        "device_scale_factor": 2,
+        "is_mobile": False,
+        "has_touch": False,
+    },
 ]
 
 LOCALES = ["ar-SA", "ar-EG", "en-US", "en-GB"]
@@ -298,9 +321,13 @@ def run_cycle(playwright, row: dict, proxy_url: str | None) -> None:
     liked = False
     commented = False
     try:
+        profile = random.choice(DEVICE_PROFILES)
         context = browser.new_context(
-            user_agent=random.choice(USER_AGENTS),
-            viewport=random.choice(VIEWPORTS),
+            user_agent=profile["user_agent"],
+            viewport=profile["viewport"],
+            device_scale_factor=profile["device_scale_factor"],
+            is_mobile=profile["is_mobile"],
+            has_touch=profile["has_touch"],
             locale=random.choice(LOCALES),
             timezone_id=random.choice(["Asia/Riyadh", "Asia/Dubai", "Africa/Cairo", "Europe/London"]),
             java_script_enabled=True,
