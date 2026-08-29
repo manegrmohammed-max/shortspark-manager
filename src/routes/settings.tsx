@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Power, Shield, Save } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { DeployPanel } from "@/components/DeployPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,6 +137,8 @@ function SettingsPage() {
             يوقف الدورات فوراً، ويرسل نبضة حياة تظهر في شارة الحالة أعلى الصفحة.
           </div>
         </div>
+
+        <DeployPanel settings={data ?? null} />
       </div>
     </AppShell>
   );
