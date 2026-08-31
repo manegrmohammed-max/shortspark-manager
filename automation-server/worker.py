@@ -159,6 +159,67 @@ def set_status(url_id: str, status: str) -> None:
     db.table("urls").update({"status": status}).eq("id", url_id).execute()
 
 
+# ------------------------------------------------------------------ البروكسي
+_PROXY_CACHE: dict[str, tuple[bool, float]] = {}
+PROXY_CHECK_TTL = 600  # ثانية
+
+
+def parse_proxies(raw: str | None) -> list[str]:
+    """يقبل بروكسي واحداً أو قائمة مفصولة بفواصل/أسطر ويصحح الصيغة."""
+    if not raw:
+        return []
+    out: list[str] = []
+    for part in raw.replace(",", "\n").replace(";", "\n").split("\n"):
+        p = part.strip()
+        if not p:
+            continue
+        if "://" not in p:
+            p = "http://" + p  # المستخدم أدخل host:port فقط
+        out.append(p)
+    return out
+
+
+def proxy_works(playwright, proxy: str) -> bool:
+    """اختبار حقيقي للبروكسي بفتح صفحة خفيفة عبره (مع ذاكرة مؤقتة)."""
+    cached = _PROXY_CACHE.get(proxy)
+    if cached and (time.time() - cached[1]) < PROXY_CHECK_TTL:
+        return cached[0]
+    ok = False
+    browser = None
+    try:
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+            proxy={"server": proxy},
+        )
+        page = browser.new_page()
+        page.goto("https://www.youtube.com/robots.txt", timeout=25000)
+        ok = True
+    except Exception as exc:
+        print(f"[WARN] فشل اختبار البروكسي: {exc}", flush=True)
+    finally:
+        try:
+            if browser:
+                browser.close()
+        except Exception:
+            pass
+    _PROXY_CACHE[proxy] = (ok, time.time())
+    return ok
+
+
+def pick_proxy(playwright, proxies: list[str]) -> str | None:
+    """يختار أول بروكسي يعمل فعلاً، ويرجع None للاتصال المباشر."""
+    if not proxies:
+        return None
+    shuffled = random.sample(proxies, len(proxies))
+    for proxy in shuffled:
+        if proxy_works(playwright, proxy):
+            return proxy
+    log("جميع البروكسيات المُدخلة لا تستجيب — التبديل إلى الاتصال المباشر", "warning")
+    return None
+
+
+
 # ------------------------------------------------------- محاكاة سلوك بشري
 def human_mouse(page: Page, moves: int = 6) -> None:
     width = page.viewport_size["width"] if page.viewport_size else 1280
