@@ -378,10 +378,19 @@ def run_cycle(playwright, row: dict, proxy_url: str | None) -> None:
     if proxy_url:
         launch_args["proxy"] = {"server": proxy_url}
 
-    browser = playwright.chromium.launch(**launch_args)
+    browser = None
     liked = False
     commented = False
     try:
+        try:
+            browser = playwright.chromium.launch(**launch_args)
+        except Exception as launch_exc:
+            # فشل إقلاع المتصفح (بروكسي معطوب أو بيئة ناقصة): نؤجل الرابط بدل
+            # الدخول في حلقة أخطاء سريعة.
+            if proxy_url:
+                _PROXY_CACHE[proxy_url] = (False, time.time())
+            raise RuntimeError(f"تعذر إقلاع المتصفح: {launch_exc}")
+
         profile = random.choice(DEVICE_PROFILES)
         context = browser.new_context(
             user_agent=profile["user_agent"],
