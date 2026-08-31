@@ -526,6 +526,22 @@ def main() -> None:
                 traceback.print_exc()
                 time.sleep(POLL_INTERVAL_SEC)
 
+def run_forever() -> None:
+    """طبقة حماية: أي انهيار غير متوقع يعيد إقلاع المحرك تلقائياً بدل التوقف."""
+    backoff = 5
+    while True:
+        try:
+            main()
+            return  # خروج مقصود (إيقاف يدوي)
+        except KeyboardInterrupt:
+            return
+        except Exception as exc:
+            log(f"انهيار غير متوقع — إعادة الإقلاع بعد {backoff} ثانية: {exc}", "error")
+            traceback.print_exc()
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 120)
+
 
 if __name__ == "__main__":
-    main()
+    run_forever()
+
