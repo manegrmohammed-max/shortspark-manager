@@ -159,6 +159,67 @@ def set_status(url_id: str, status: str) -> None:
     db.table("urls").update({"status": status}).eq("id", url_id).execute()
 
 
+# ------------------------------------------------------------------ البروكسي
+_PROXY_CACHE: dict[str, tuple[bool, float]] = {}
+PROXY_CHECK_TTL = 600  # ثانية
+
+
+def parse_proxies(raw: str | None) -> list[str]:
+    """يقبل بروكسي واحداً أو قائمة مفصولة بفواصل/أسطر ويصحح الصيغة."""
+    if not raw:
+        return []
+    out: list[str] = []
+    for part in raw.replace(",", "\n").replace(";", "\n").split("\n"):
+        p = part.strip()
+        if not p:
+            continue
+        if "://" not in p:
+            p = "http://" + p  # المستخدم أدخل host:port فقط
+        out.append(p)
+    return out
+
+
+def proxy_works(playwright, proxy: str) -> bool:
+    """اختبار حقيقي للبروكسي بفتح صفحة خفيفة عبره (مع ذاكرة مؤقتة)."""
+    cached = _PROXY_CACHE.get(proxy)
+    if cached and (time.time() - cached[1]) < PROXY_CHECK_TTL:
+        return cached[0]
+    ok = False
+    browser = None
+    try:
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+            proxy={"server": proxy},
+        )
+        page = browser.new_page()
+        page.goto("https://www.youtube.com/robots.txt", timeout=25000)
+        ok = True
+    except Exception as exc:
+        print(f"[WARN] فشل اختبار البروكسي: {exc}", flush=True)
+    finally:
+        try:
+            if browser:
+                browser.close()
+        except Exception:
+            pass
+    _PROXY_CACHE[proxy] = (ok, time.time())
+    return ok
+
+
+def pick_proxy(playwright, proxies: list[str]) -> str | None:
+    """يختار أول بروكسي يعمل فعلاً، ويرجع None للاتصال المباشر."""
+    if not proxies:
+        return None
+    shuffled = random.sample(proxies, len(proxies))
+    for proxy in shuffled:
+        if proxy_works(playwright, proxy):
+            return proxy
+    log("جميع البروكسيات المُدخلة لا تستجيب — التبديل إلى الاتصال المباشر", "warning")
+    return None
+
+
+
 # ------------------------------------------------------- محاكاة سلوك بشري
 def human_mouse(page: Page, moves: int = 6) -> None:
     width = page.viewport_size["width"] if page.viewport_size else 1280
@@ -317,10 +378,19 @@ def run_cycle(playwright, row: dict, proxy_url: str | None) -> None:
     if proxy_url:
         launch_args["proxy"] = {"server": proxy_url}
 
-    browser = playwright.chromium.launch(**launch_args)
+    browser = None
     liked = False
     commented = False
     try:
+        try:
+            browser = playwright.chromium.launch(**launch_args)
+        except Exception as launch_exc:
+            # فشل إقلاع المتصفح (بروكسي معطوب أو بيئة ناقصة): نؤجل الرابط بدل
+            # الدخول في حلقة أخطاء سريعة.
+            if proxy_url:
+                _PROXY_CACHE[proxy_url] = (False, time.time())
+            raise RuntimeError(f"تعذر إقلاع المتصفح: {launch_exc}")
+
         profile = random.choice(DEVICE_PROFILES)
         context = browser.new_context(
             user_agent=profile["user_agent"],
@@ -433,11 +503,19 @@ def main() -> None:
                     time.sleep(POLL_INTERVAL_SEC)
                     continue
 
-                proxy_url = (settings.get("proxy_url") or "").strip() or None
+                proxies = parse_proxies(settings.get("proxy_url"))
                 tasks = due_urls()
                 if not tasks:
                     time.sleep(POLL_INTERVAL_SEC)
                     continue
+
+                proxy_url = pick_proxy(playwright, proxies)
+                if proxies:
+                    log(
+                        f"البروكسي النشط: {proxy_url.split('@')[-1]}" if proxy_url
+                        else "تعذر استخدام البروكسي — العمل باتصال مباشر",
+                        "success" if proxy_url else "warning",
+                    )
 
                 for row in tasks:
                     fresh = get_settings()
@@ -448,6 +526,7 @@ def main() -> None:
                     run_cycle(playwright, row, proxy_url)
                     time.sleep(random.randint(3, 9))
 
+
             except KeyboardInterrupt:
                 log("تم إيقاف الخادم يدوياً", "warning")
                 break
@@ -456,6 +535,22 @@ def main() -> None:
                 traceback.print_exc()
                 time.sleep(POLL_INTERVAL_SEC)
 
+def run_forever() -> None:
+    """طبقة حماية: أي انهيار غير متوقع يعيد إقلاع المحرك تلقائياً بدل التوقف."""
+    backoff = 5
+    while True:
+        try:
+            main()
+            return  # خروج مقصود (إيقاف يدوي)
+        except KeyboardInterrupt:
+            return
+        except Exception as exc:
+            log(f"انهيار غير متوقع — إعادة الإقلاع بعد {backoff} ثانية: {exc}", "error")
+            traceback.print_exc()
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 120)
+
 
 if __name__ == "__main__":
-    main()
+    run_forever()
+
