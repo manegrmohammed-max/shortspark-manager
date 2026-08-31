@@ -494,11 +494,19 @@ def main() -> None:
                     time.sleep(POLL_INTERVAL_SEC)
                     continue
 
-                proxy_url = (settings.get("proxy_url") or "").strip() or None
+                proxies = parse_proxies(settings.get("proxy_url"))
                 tasks = due_urls()
                 if not tasks:
                     time.sleep(POLL_INTERVAL_SEC)
                     continue
+
+                proxy_url = pick_proxy(playwright, proxies)
+                if proxies:
+                    log(
+                        f"البروكسي النشط: {proxy_url.split('@')[-1]}" if proxy_url
+                        else "تعذر استخدام البروكسي — العمل باتصال مباشر",
+                        "success" if proxy_url else "warning",
+                    )
 
                 for row in tasks:
                     fresh = get_settings()
@@ -508,6 +516,7 @@ def main() -> None:
                     send_heartbeat(fresh.get("id"))
                     run_cycle(playwright, row, proxy_url)
                     time.sleep(random.randint(3, 9))
+
 
             except KeyboardInterrupt:
                 log("تم إيقاف الخادم يدوياً", "warning")
