@@ -85,7 +85,7 @@ function SettingsPage() {
             <div>
               <h2 className="text-base font-bold">بروكسي تدوير الـ IP</h2>
               <p className="text-xs text-muted-foreground">
-                يستخدمه المحرك لتغيير عنوان الخروج في كل دورة ومنع الحظر.
+                حفظ الرابط لا يعني أن البروكسي متصل؛ يتم استخدامه فقط عندما يكون العامل المستضاف متصلاً.
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ function SettingsPage() {
             <div>
               <h2 className="text-base font-bold">محرك السيرفر السحابي</h2>
               <p className="text-xs text-muted-foreground">
-                الأمر: {running ? "تشغيل" : "إيقاف"} • الاتصال:{" "}
+                الأمر المطلوب: {running ? "تشغيل" : "إيقاف"} • الاتصال الفعلي:{" "}
                 {online ? "متصل الآن" : "لا توجد نبضة حديثة"}
               </p>
             </div>
@@ -130,7 +130,7 @@ function SettingsPage() {
             )}
           >
             <Power className="size-4" />
-            {running ? "إيقاف المحرك" : "تشغيل المحرك"}
+            {running ? (online ? "إيقاف المحرك" : "إلغاء أمر التشغيل") : "إرسال أمر التشغيل"}
           </Button>
           <div className="mt-4 rounded-lg border border-border bg-secondary/60 p-3 text-xs leading-6 text-muted-foreground">
             يقرأ خادم <span className="num">automation-server</span> هذه الحالة كل بضع ثوانٍ ويبدأ أو

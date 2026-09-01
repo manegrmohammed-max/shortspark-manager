@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Rocket,
   Copy,
@@ -49,17 +49,13 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 export function DeployPanel({ settings }: { settings: SettingsRow | null }) {
   const online = isServerOnline(settings);
   const running = settings?.server_status === "running";
-  const proxyOk = useMemo(() => {
-    const p = settings?.proxy_url?.trim();
-    if (!p) return null;
-    return /^(https?|socks5):\/\/[^\s]+:\d+/i.test(p);
-  }, [settings?.proxy_url]);
+  const proxyConfigured = Boolean(settings?.proxy_url?.trim());
 
   const statusReport = [
-    `الأمر المخزّن   : ${running ? "تشغيل (running)" : "إيقاف (stopped)"}`,
+    `أمر المحرك      : ${running ? "تشغيل مطلوب" : "إيقاف مطلوب"}`,
     `اتصال المحرك    : ${online ? "متصل ✅" : "غير متصل ❌"}`,
     `آخر نبضة حياة   : ${settings?.heartbeat_at ? new Date(settings.heartbeat_at).toLocaleString("ar") : "لا توجد"}`,
-    `البروكسي        : ${settings?.proxy_url ? (proxyOk ? "مضبوط وصيغته صحيحة ✅" : "الصيغة غير صحيحة ⚠️") : "غير مضبوط (اتصال مباشر)"}`,
+    `إعداد البروكسي  : ${proxyConfigured ? "محفوظ — لا يمكن اختباره والمحرك غير متصل" : "غير مضبوط (اتصال مباشر)"}`,
     `قاعدة البيانات  : متصلة ✅`,
   ].join("\n");
 
@@ -156,8 +152,9 @@ export function DeployPanel({ settings }: { settings: SettingsRow | null }) {
             {!online && (
               <p className="mt-2 flex items-start gap-2 text-[11px] leading-5 text-warning">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-                المحرك غير متصل حالياً: لن تُنفَّذ أي مشاهدات حتى يتم نشر{" "}
-                <span className="num">automation-server</span> وتشغيله بالخطوات المجاورة.
+                {running
+                  ? "تم حفظ أمر التشغيل، لكن لا توجد نبضة من العامل المستضاف. حفظ الأمر لا يشغّل خادماً متوقفاً؛ افحص سجل النشر وأعد تشغيل الخدمة المستضافة."
+                  : "المحرك غير متصل ولا يوجد أمر تشغيل حالي."}
               </p>
             )}
           </div>
